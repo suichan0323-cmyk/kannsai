@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KansaiGo! 關西微旅行隨機行程抽籤與預算計算器</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;700;900&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    :root {
+      --primary: #E05638;       /* 鳥居朱紅 */
+      --primary-hover: #C24227;
+      --secondary: #2C3E50;
+      --accent: #E67E22;
+      --bg: #FDFBF7;           /* 和風和紙米白 */
+      --card-bg: #FFFFFF;
+      --text: #2D3748;
+      --text-muted: #718096;
+      --border: #EDE8DF;
+      --success: #27AE60;
+      --warning: #F39C12;
+      --danger: #E74C3C;
+      --radius: 16px;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Zen Maru Gothic', 'Noto Sans TC', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    header h1 {
+      font-size: 2.1rem;
+      color: var(--primary);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    /* 頂部切換導覽列 */
+    .tab-bar {
+      display: flex;
+      background: #EFE9DF;
+      padding: 6px;
+      border-radius: 999px;
+      margin-bottom: 24px;
+      gap: 6px;
+      max-width: 520px;
+      width: 100%;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px 14px;
+      border: none;
+      background: transparent;
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: 700;
+      color: var(--text-muted);
+      transition: all 0.25s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 0.95rem;
+    }
+
+    .tab-btn.active {
+      background: #FFFFFF;
+      color: var(--primary);
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.08);
+    }
+
+    main {
+      width: 100%;
+      max-width: 540px;
+    }
+
+    .view-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .view-card.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ===== 模式一：隨機景點抽籤 ===== */
+    .roulette-box {
+      border: 2px dashed #E2D9CC;
+      border-radius: 16px;
+      padding: 30px 20px;
+      text-align: center;
+      background: #FFFDF9;
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .spot-area-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      background: #FEECE8;
+      color: var(--primary);
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .spot-name {
+      font-size: 2.2rem;
+      font-weight: 900;
+      color: var(--secondary);
+      margin-bottom: 10px;
+      min-height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .spot-desc {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      min-height: 44px;
+    }
+
+    .spot-tags {
+      margin-top: 12px;
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .spot-tag-item {
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      background: #F1F5F9;
+      border-radius: 6px;
+      color: var(--text-muted);
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn-main {
+      flex: 1;
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      font-size: 1.05rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    .btn-primary:hover { background: var(--primary-hover); transform: translateY(-2px); }
+
+    .btn-outline {
+      background: #F8FAFC;
+      border: 1px solid #CBD5E1;
+      color: var(--text);
+    }
+    .btn-outline:hover { background: #EDF2F7; }
+
+    /* 景點清單管理 */
+    .spot-list {
+      margin-top: 24px;
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+    }
+
+    .spot-list-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      color: var(--secondary);
+    }
+
+    .spot-item-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: #FAF8F5;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+    }
+
+    /* ===== 模式二：匯率換算 ===== */
+    .rate-setting-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #F8FAFC;
+      padding: 12px 16px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      border: 1px solid var(--border);
+    }
+
+    .rate-setting-bar label {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .rate-input-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .rate-input {
+      width: 80px;
+      padding: 6px 8px;
+      border: 1px solid #CBD5E1;
+      border-radius: 6px;
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .currency-card {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .input-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .input-field label {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-wrapper input {
+      width: 100%;
+      padding: 14px 16px 14px 44px;
+      border: 2px solid #E2E8F0;
+      border-radius: 12px;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--secondary);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input-wrapper input:focus { border-color: var(--primary); }
+
+    .input-wrapper .currency-symbol {
+      position: absolute;
+      left: 14px;
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--text-muted);
+    }
+
+    /* ===== 模式三：記帳與預算追蹤 ===== */
+    .budget-summary-box {
+      background: linear-gradient(135deg, #2C3E50 0%, #34495E 100%);
+      color: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .budget-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .budget-title {
+      font-size: 0.85rem;
+      opacity: 0.8;
+    }
+
+    .budget-amount {
+      font-size: 1.8rem;
+      font-weight: 900;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 12px 0 8px 0;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--success);
+      width: 0%;
+      transition: all 0.3s ease;
+    }
+
+    .budget-subtext {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      opacity: 0.9;
+    }
+
+    .expense-form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+      background: #FDFBF7;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    .expense-form input, .expense-form select {
+      padding: 10px;
+      border: 1px solid #CBD5E1;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    .expense-form button {
+      grid-column: span 2;
+    }
+
+    .expense-history-list {
+      max-height: 220px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .expense-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      background: #F8FAFC;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+
+    .expense-item-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .expense-item-name {
+      font-weight: 700;
+      color: var(--secondary);
+    }
+
+    .expense-item-category {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .expense-item-money {
+      text-align: right;
+    }
+
+    .expense-item-jpy {
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .expense-item-twd {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .del-btn {
+      background: none;
+      border: none;
+      color: #A0AEC0;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+    .del-btn:hover { color: var(--danger); }
+
+    footer {
+      margin-top: auto;
+      padding: 24px 0 8px 0;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1><i class="fa-solid fa-torii-gate"></i> KansaiGo!</h1>
+    <p>關西微旅行隨機行程抽籤與即時預算小助手</p>
+  </header>
+
+  <!-- 導覽分頁列 -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('picker')"><i class="fa-solid fa-dice"></i> 行程抽籤</button>
+    <button class="tab-btn" onclick="switchTab('converter')"><i class="fa-solid fa-calculator"></i> 匯率換算</button>
+    <button class="tab-btn" onclick="switchTab('budget')"><i class="fa-solid fa-wallet"></i> 預算記帳</button>
+  </div>
+
+  <main>
+    <!-- ===== 分頁一：隨機景點抽籤 ===== -->
+    <div id="picker-view" class="view-card active">
+      <div class="roulette-box">
+        <span class="spot-area-badge" id="spot-area">京都・宇治</span>
+        <div class="spot-name" id="spot-title">宇治平等院 鳳凰堂</div>
+        <div class="spot-desc" id="spot-desc">十元硬幣上的千年世界遺產，坐落於阿字池畔，品嚐濃郁道地宇治抹茶的最佳去處。</div>
+        <div class="spot-tags" id="spot-tags">
+          <span class="spot-tag-item"><i class="fa-regular fa-clock"></i> 建議停留 2~3 小時</span>
+          <span class="spot-tag-item"><i class="fa-solid fa-tag"></i> 世界遺產</span>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn-main btn-primary" id="spin-btn" onclick="spinDestination()">
+          <i class="fa-solid fa-shuffle"></i> 隨機抽下一站！
+        </button>
+        <button class="btn-main btn-outline" style="flex: 0 0 54px;" title="在 Google Maps 查看" onclick="openGoogleMaps()">
+          <i class="fa-solid fa-map-location-dot"></i>
+        </button>
+      </div>
+
+      <div class="spot-list">
+        <div class="spot-list-title">
+          <span>關西精選口袋景點庫 (<span id="spots-count">0</span>)</span>
+          <button onclick="resetDefaultSpots()" style="background:none; border:none; color:var(--primary); font-size:0.8rem; cursor:pointer;">還原預設清單</button>
+        </div>
+        <div id="spot-item-container"></div>
+      </div>
+    </div>
+
+    <!-- ===== 分頁二：即時匯率換算 ===== -->
+    <div id="converter-view" class="view-card">
+      <div class="rate-setting-bar">
+        <label><i class="fa-solid fa-sliders"></i> 當前參考匯率 (JPY ➔ TWD)</label>
+        <div class="rate-input-box">
+          <input type="number" step="0.001" id="exchange-rate" value="0.215" class="rate-input" oninput="updateRate()" />
+        </div>
+      </div>
+
+      <div class="currency-card">
+        <div class="input-field">
+          <label>日圓金額 (JPY ¥)</label>
+          <div class="input-wrapper">
+            <span class="currency-symbol">¥</span>
+            <input type="number" id="jpy-input" placeholder="例如：1000" oninput="convertFromJpy()" />
+          </div>
+        </div>
+
+        <div style="text-align:center; color:var(--text-muted); font-size:1.1rem;">
+          <i class="fa-solid fa-arrow-down-up"></i>
+        </div>
+
+        <div class="input-field">
+          <label>換算新台幣 (TWD NT$)</label>
+          <div class="input-wrapper">
+            <span class="currency-symbol">$</span>
+            <input type="number" id="twd-input" placeholder="例如：215" oninput="convertFromTwd()" />
+          </div>
+        </div>
+      </div>
+
+      <div style="background:#F1F5F9; padding:12px; border-radius:10px; font-size:0.85rem; color:var(--text-muted); line-height:1.4;">
+        <i class="fa-solid fa-circle-info"></i> 提示：可依你在出國換匯或刷卡即時匯率隨意調整上方匯率值，輸入後雙向自動計算！
+      </div>
+    </div>
+
+    <!-- ===== 分頁三：預算與記帳 ===== -->
+    <div id="budget-view" class="view-card">
+      <div class="budget-summary-box">
+        <div class="budget-header">
+          <span class="budget-title">總預算進度 (TWD)</span>
+          <button onclick="setTotalBudgetPrompt()" style="background:rgba(255,255,255,0.2); border:none; color:#FFF; font-size:0.75rem; padding:4px 8px; border-radius:6px; cursor:pointer;">
+            <i class="fa-solid fa-pen"></i> 修改預算
+          </button>
+        </div>
+        <div class="budget-amount" id="budget-spent-display">NT$ 0 / 25,000</div>
+        
+        <div class="progress-bar-container">
+          <div class="progress-bar-fill" id="budget-progress-fill"></div>
+        </div>
+
+        <div class="budget-subtext">
+          <span id="budget-status-text">剩餘預算：NT$ 25,000</span>
+          <span id="budget-percent-text">0%</span>
+        </div>
+      </div>
+
+      <!-- 新增消費表單 -->
+      <form class="expense-form" onsubmit="handleAddExpense(event)">
+        <input type="text" id="exp-name" placeholder="項目 (如：抹茶冰淇淋)" required />
+        <select id="exp-cat">
+          <option value="美食">🍜 美食甜品</option>
+          <option value="門票">🎟️ 門票觀光</option>
+          <option value="交通">🚅 交通票券</option>
+          <option value="購物">🛍️ 伴手紀念</option>
+        </select>
+        <input type="number" id="exp-amount" placeholder="金額 (日幣 JPY)" style="grid-column: span 2;" required />
+        <button type="submit" class="btn-main btn-primary">
+          <i class="fa-solid fa-plus"></i> 加入記帳清單
+        </button>
+      </form>
+
+      <div class="expense-history-list" id="expense-list-container">
+        <!-- 動態注入記帳紀錄 -->
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>KansaiGo! Vibe Coding Interactive Web App © 2026</p>
+  </footer>
+
+  <script>
+    // 預設經典關西口袋行程
+    const DEFAULT_SPOTS = [
+      {
+        id: 1,
+        title: "宇治平等院 鳳凰堂",
+        area: "京都・宇治",
+        desc: "日幣十元硬幣上的千年世界遺產，阿字池倒映出鳳凰堂的宏偉，宇治抹茶巡禮必訪！",
+        time: "2~3 小時",
+        tag: "世界遺產"
+      },
+      {
+        id: 2,
+        title: "勝尾寺 (達摩寺)",
+        area: "大阪・箕面",
+        desc: "以滿山滿谷的祈願勝利達摩聞名！漫步在靈氣古剎中尋找散落各處的迷你達摩。",
+        time: "2 小時",
+        tag: "祈願勝運"
+      },
+      {
+        id: 3,
+        title: "大阪海遊館",
+        area: "大阪・港區",
+        desc: "全球規模最大的水族館之一，巨型環形水槽中悠游著鯨鯊，感受壯闊的太平洋生態。",
+        time: "2.5~3 小時",
+        tag: "療癒鯨鯊"
+      },
+      {
+        id: 4,
+        title: "伏見稻荷大社",
+        area: "京都・伏見",
+        desc: "綿延整座稻荷山丘的千本鳥居，朱紅色的光影隧道，是關西最震撼的視覺印象之一。",
+        time: "2 小時",
+        tag: "千本鳥居"
+      },
+      {
+        id: 5,
+        title: "奈良公園・東大寺",
+        area: "奈良",
+        desc: "與親人可愛的鹿群鞠躬互動，參拜世界最大木造建築東大寺大佛，感受千年古都靜謐。",
+        time: "3 小時",
+        tag: "餵鹿體驗"
+      },
+      {
+        id: 6,
+        title: "道頓堀・心齋橋",
+        area: "大阪・難波",
+        desc: "跑跑固力果跑者經典打卡、品嚐熱騰騰的章魚燒與大阪燒，關西最熱鬧的美食一級戰區！",
+        time: "2~4 小時",
+        tag: "美食血拚"
+      }
+    ];
+
+    let spots = [];
+    let currentSpot = null;
+    let exchangeRate = 0.215;
+    let totalBudget = 25000;
+    let expenses = [];
+
+    // 初始化載入
+    function init() {
+      // 讀取景點
+      const savedSpots = localStorage.getItem("kansaigo_spots");
+      spots = savedSpots ? JSON.parse(savedSpots) : [...DEFAULT_SPOTS];
+      currentSpot = spots[0];
+      renderCurrentSpot();
+      renderSpotsList();
+
+      // 讀取預算與記帳
+      const savedBudget = localStorage.getItem("kansaigo_budget");
+      if (savedBudget) totalBudget = Number(savedBudget);
+
+      const savedExpenses = localStorage.getItem("kansaigo_expenses");
+      if (savedExpenses) expenses = JSON.parse(savedExpenses);
+
+      updateBudgetUI();
+      renderExpenseList();
+    }
+
+    // 分頁切換
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.view-card').forEach(card => card.classList.remove('active'));
+
+      if (tab === 'picker') {
+        document.querySelectorAll('.tab-btn')[0].classList.add('active');
+        document.getElementById('picker-view').classList.add('active');
+      } else if (tab === 'converter') {
+        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+        document.getElementById('converter-view').classList.add('active');
+      } else if (tab === 'budget') {
+        document.querySelectorAll('.tab-btn')[2].classList.add('active');
+        document.getElementById('budget-view').classList.add('active');
+      }
+    }
+
+    /* ===== 模式一：抽籤邏輯 ===== */
+    let isSpinning = false;
+    function spinDestination() {
+      if (isSpinning || spots.length === 0) return;
+      isSpinning = true;
+
+      const spinBtn = document.getElementById('spin-btn');
+      spinBtn.disabled = true;
+      spinBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 抽籤中...';
+
+      let count = 0;
+      const totalTicks = 16;
+      const interval = setInterval(() => {
+        const randIndex = Math.floor(Math.random() * spots.length);
+        const tempSpot = spots[randIndex];
+        document.getElementById('spot-area').innerText = tempSpot.area;
+        document.getElementById('spot-title').innerText = tempSpot.title;
+        document.getElementById('spot-desc').innerText = tempSpot.desc;
+
+        count++;
+        if (count >= totalTicks) {
+          clearInterval(interval);
+          currentSpot = tempSpot;
+          renderCurrentSpot();
+          isSpinning = false;
+          spinBtn.disabled = false;
+          spinBtn.innerHTML = '<i class="fa-solid fa-shuffle"></i> 隨機抽下一站！';
+        }
+      }, 70);
+    }
+
+    function renderCurrentSpot() {
+      if (!currentSpot) return;
+      document.getElementById('spot-area').innerText = currentSpot.area;
+      document.getElementById('spot-title').innerText = currentSpot.title;
+      document.getElementById('spot-desc').innerText = currentSpot.desc;
+      document.getElementById('spot-tags').innerHTML = `
+        <span class="spot-tag-item"><i class="fa-regular fa-clock"></i> ${currentSpot.time}</span>
+        <span class="spot-tag-item"><i class="fa-solid fa-tag"></i> ${currentSpot.tag}</span>
+      `;
+    }
+
+    function openGoogleMaps() {
+      if (!currentSpot) return;
+      const query = encodeURIComponent(currentSpot.title);
+      window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
+    }
+
+    function renderSpotsList() {
+      const container = document.getElementById('spot-item-container');
+      container.innerHTML = '';
+      document.getElementById('spots-count').innerText = spots.length;
+
+      spots.forEach((s) => {
+        const row = document.createElement('div');
+        row.className = 'spot-item-row';
+        row.innerHTML = `
+          <div><strong>${s.title}</strong> <span style="color:#A0AEC0; font-size:0.8rem;">(${s.area})</span></div>
+          <button class="del-btn" onclick="deleteSpot(${s.id})"><i class="fa-solid fa-trash-can"></i></button>
+        `;
+        container.appendChild(row);
+      });
+      localStorage.setItem("kansaigo_spots", JSON.stringify(spots));
+    }
+
+    function deleteSpot(id) {
+      spots = spots.filter(s => s.id !== id);
+      renderSpotsList();
+      if (currentSpot && currentSpot.id === id && spots.length > 0) {
+        currentSpot = spots[0];
+        renderCurrentSpot();
+      }
+    }
+
+    function resetDefaultSpots() {
+      if (confirm("確定還原為預設關西經典行程嗎？")) {
+        spots = [...DEFAULT_SPOTS];
+        currentSpot = spots[0];
+        renderCurrentSpot();
+        renderSpotsList();
+      }
+    }
+
+    /* ===== 模式二：匯率換算邏輯 ===== */
+    function updateRate() {
+      const input = document.getElementById('exchange-rate');
+      exchangeRate = parseFloat(input.value) || 0.215;
+      convertFromJpy();
+    }
+
+    function convertFromJpy() {
+      const jpy = parseFloat(document.getElementById('jpy-input').value);
+      if (isNaN(jpy)) {
+        document.getElementById('twd-input').value = '';
+        return;
+      }
+      document.getElementById('twd-input').value = Math.round(jpy * exchangeRate);
+    }
+
+    function convertFromTwd() {
+      const twd = parseFloat(document.getElementById('twd-input').value);
+      if (isNaN(twd) || exchangeRate === 0) {
+        document.getElementById('jpy-input').value = '';
+        return;
+      }
+      document.getElementById('jpy-input').value = Math.round(twd / exchangeRate);
+    }
+
+    /* ===== 模式三：預算與記帳邏輯 ===== */
+    function setTotalBudgetPrompt() {
+      const current = totalBudget;
+      const res = prompt("請輸入您的旅行總預算 (新台幣 TWD)：", current);
+      if (res && !isNaN(res) && Number(res) > 0) {
+        totalBudget = Number(res);
+        localStorage.setItem("kansaigo_budget", totalBudget);
+        updateBudgetUI();
+      }
+    }
+
+    function handleAddExpense(e) {
+      e.preventDefault();
+      const name = document.getElementById('exp-name').value.trim();
+      const cat = document.getElementById('exp-cat').value;
+      const jpy = parseFloat(document.getElementById('exp-amount').value);
+
+      if (!name || isNaN(jpy) || jpy <= 0) return;
+
+      const twd = Math.round(jpy * exchangeRate);
+      const newExp = {
+        id: Date.now(),
+        name,
+        category: cat,
+        jpy,
+        twd
+      };
+
+      expenses.unshift(newExp);
+      localStorage.setItem("kansaigo_expenses", JSON.stringify(expenses));
+
+      document.getElementById('exp-name').value = '';
+      document.getElementById('exp-amount').value = '';
+
+      renderExpenseList();
+      updateBudgetUI();
+    }
+
+    function deleteExpense(id) {
+      expenses = expenses.filter(e => e.id !== id);
+      localStorage.setItem("kansaigo_expenses", JSON.stringify(expenses));
+      renderExpenseList();
+      updateBudgetUI();
+    }
+
+    function updateBudgetUI() {
+      const totalSpent = expenses.reduce((sum, item) => sum + item.twd, 0);
+      const percent = Math.min(100, Math.round((totalSpent / totalBudget) * 100));
+
+      document.getElementById('budget-spent-display').innerText = `NT$ ${totalSpent.toLocaleString()} / ${totalBudget.toLocaleString()}`;
+      document.getElementById('budget-percent-text').innerText = `${percent}%`;
+
+      const remaining = totalBudget - totalSpent;
+      const statusText = document.getElementById('budget-status-text');
+      const fillBar = document.getElementById('budget-progress-fill');
+
+      fillBar.style.width = `${percent}%`;
+
+      if (remaining >= 0) {
+        statusText.innerText = `剩餘預算：NT$ ${remaining.toLocaleString()}`;
+        if (percent > 85) {
+          fillBar.style.background = 'var(--warning)';
+        } else {
+          fillBar.style.background = 'var(--success)';
+        }
+      } else {
+        statusText.innerText = `已超支：NT$ ${Math.abs(remaining).toLocaleString()}`;
+        fillBar.style.background = 'var(--danger)';
+      }
+    }
+
+    function renderExpenseList() {
+      const container = document.getElementById('expense-list-container');
+      container.innerHTML = '';
+
+      if (expenses.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:16px; font-size:0.85rem;">尚無記帳紀錄，趕緊記錄第一筆花費吧！</div>';
+        return;
+      }
+
+      expenses.forEach(exp => {
+        const item = document.createElement('div');
+        item.className = 'expense-item';
+        item.innerHTML = `
+          <div class="expense-item-info">
+            <span class="expense-item-name">${exp.name}</span>
+            <span class="expense-item-category">[${exp.category}]</span>
+          </div>
+          <div style="display:flex; align-items:center;">
+            <div class="expense-item-money">
+              <div class="expense-item-jpy">¥ ${exp.jpy.toLocaleString()}</div>
+              <div class="expense-item-twd">約 NT$ ${exp.twd.toLocaleString()}</div>
+            </div>
+            <button class="del-btn" onclick="deleteExpense(${exp.id})"><i class="fa-solid fa-trash-can"></i></button>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
